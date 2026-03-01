@@ -42,7 +42,8 @@ public class GroupMatchDTO {
     }
 
     // --- Constructor to map a StudyGroup to this DTO ---
-    public GroupMatchDTO(StudyGroup group, int matchScore, Compatibility compDetails) {
+    // ✨ UPDATE THIS CONSTRUCTOR to accept the membersList as a parameter ✨
+    public GroupMatchDTO(StudyGroup group, int matchScore, Compatibility compDetails, List<MemberDTO> membersList) {
         this.id = group.getId();
         this.name = group.getName();
         this.subject = group.getSubject();
@@ -53,7 +54,6 @@ public class GroupMatchDTO {
         this.currentMembers = group.getMembers().size();
         this.maxMembers = group.getMaxCapacity();
         
-        // Format dates and times for the frontend safely
         this.creationDate = group.getCreatedAt() != null ? group.getCreatedAt().toLocalDate().toString() : "Recent";
         
         String daysStr = group.getSessionDays() != null ? String.join(", ", group.getSessionDays()) : "";
@@ -61,12 +61,8 @@ public class GroupMatchDTO {
                          ? group.getSessionTimeFrom() + " - " + group.getSessionTimeTo() : "";
         this.sessionDetails = (!daysStr.isEmpty() && !timeStr.isEmpty()) ? daysStr + " • " + timeStr : "TBD";
 
-        // Map members
-        this.membersList = group.getMembers().stream().map(m -> new MemberDTO(
-                m.getName(),
-                m.getId().equals(group.getAdmin().getId()) ? "Creator" : "Member",
-                m.getId().equals(group.getAdmin().getId()) ? group.getSkillLevel() : "Pending"
-        )).collect(Collectors.toList());
+        // ✨ Set the pre-calculated members list ✨
+        this.membersList = membersList;
     }
 
     // Standard Getters
