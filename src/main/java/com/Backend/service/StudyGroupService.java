@@ -7,7 +7,6 @@ import com.Backend.repository.StudyGroupRepository;
 import com.Backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 @Service
@@ -27,13 +26,16 @@ public class StudyGroupService {
         StudyGroup group = new StudyGroup();
         group.setName(request.getName());
         group.setSubject(request.getSubject());
-        group.setDescription(request.getDescription());
-        group.setMaxCapacity(request.getMaxCapacity());
+        group.setMaxCapacity(request.getMembersCount());
+        group.setStudyGoal(request.getStudyGoal());
+        group.setSkillLevel(request.getSkillLevel());
+        group.setLearningStyle(request.getLearningStyle());
+        group.setSessionDays(request.getSessionDays());
+        group.setSessionTimeFrom(request.getSessionTimeFrom());
+        group.setSessionTimeTo(request.getSessionTimeTo());
         group.setAdmin(admin);
         
-        // Admin is automatically the first member
         group.getMembers().add(admin);
-
         return groupRepository.save(group);
     }
 
@@ -42,25 +44,82 @@ public class StudyGroupService {
         return groupRepository.findAll();
     }
 
-    // 3. JOIN A GROUP LOGIC
+    // 3. Join Group
     public StudyGroup joinGroup(Long groupId, Long userId) {
-        StudyGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found!"));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-
-        // Check if already a member
-        if (group.getMembers().contains(user)) {
-            throw new RuntimeException("You are already a member of this group!");
-        }
-
-        // Check capacity
-        if (group.getMembers().size() >= group.getMaxCapacity()) {
-            throw new RuntimeException("Sorry, this group is full!");
-        }
-
-        // Add user to group
+        StudyGroup group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found!"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found!"));
+        if (group.getMembers().contains(user)) throw new RuntimeException("Already a member!");
+        if (group.getMembers().size() >= group.getMaxCapacity()) throw new RuntimeException("Group is full!");
+        
         group.getMembers().add(user);
         return groupRepository.save(group);
+    }
+
+    // ✨ 4. NEW: Leave Group
+    public void leaveGroup(Long groupId, Long userId) {
+        StudyGroup group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found!"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found!"));
+        
+        if (!group.getMembers().contains(user)) {
+            throw new RuntimeException("You are not a member of this group!");
+        }
+        
+        if (group.getAdmin().getId().equals(userId)) {
+            throw new RuntimeException("Admin cannot leave the group. You must delete it or transfer ownership (Feature coming soon).");
+        }
+
+        group.getMembers().remove(user);
+        groupRepository.save(group);
+    }
+    // 5. Delete Group (For Creators Only)
+    public void deleteGroup(Long groupId, Long userId) {
+        StudyGroup group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found!"));
+        
+        // Verify the user is the admin/creator
+        if (!group.getAdmin().getId().equals(userId)) {
+            throw new RuntimeException("Permission denied. Only the group creator can delete this group.");
+        }
+
+        // Delete the group (Hibernate will automatically remove the links in the group_members join table)
+        groupRepository.delete(group);
+    }
+
+    // ✨ NEW: Dynamic Search Service
+    public List<StudyGroup> searchGroups(String subject, String skillLevel, String studyGoal, String size, List<String> days) {
+        
+        // 1. Get basic matches from the database
+        List<StudyGroup> groups = groupRepository.searchByFilters(subject, skillLevel, studyGoal);
+
+        // 2. Filter complex logic (Size and Days) using Java Streams
+        return groups.stream().filter(group -> {
+            
+            // Check Group Size
+            if (size != null && !size.isEmpty() && !size.equals("Any")) {
+                if (size.equals("10+")) {
+                    if (group.getMaxCapacity() < 10) return false;
+                } else {
+                    if (group.getMaxCapacity() != Integer.parseInt(size)) return false;
+                }
+            }
+
+            // Check Preferred Days (Keep group if it has AT LEAST ONE day matching the user's selected days)
+            if (days != null && !days.isEmpty()) {
+                if (group.getSessionDays() == null || group.getSessionDays().isEmpty()) {
+                    return false; // Group hasn't set days, filter it out
+                }
+                // Check for intersection
+                boolean hasMatchingDay = false;
+                for (String day : days) {
+                    if (group.getSessionDays().contains(day)) {
+                        hasMatchingDay = true;
+                        break;
+                    }
+                }
+                if (!hasMatchingDay) return false;
+            }
+
+            return true;
+        }).toList();
     }
 }

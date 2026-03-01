@@ -5,7 +5,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // ✨ THE NEW IMPORT ✨
+import org.springframework.http.HttpMethod; 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -35,12 +35,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 
-                // ✨ UPDATE THIS LINE TO INCLUDE THE RESET PASSWORD ROUTE ✨
+                // Route for authentication and resetting passwords
                 .requestMatchers("/api/auth/**", "/api/users/reset-password").permitAll() 
                 
-                // ✨ THE MAGIC LINE TO ALLOW PUT REQUESTS FROM REACT ✨
+                // Allow pre-flight OPTIONS requests from React
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                 
+                // Require token for everything else
                 .anyRequest().authenticated() 
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -52,12 +53,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        
         // Allow your React app to connect
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
-        // Allow these HTTP methods
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Allow the JWT Authorization header and standard JSON headers
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        
+        // ✨ THE FIX: Allow ALL HTTP Methods (GET, POST, PUT, DELETE, PATCH, OPTIONS)
+        configuration.setAllowedMethods(Arrays.asList("*")); 
+        
+        // ✨ THE FIX: Allow ALL Headers
+        configuration.setAllowedHeaders(Arrays.asList("*")); 
+        
         // Allow credentials (important for secure requests)
         configuration.setAllowCredentials(true);
 
