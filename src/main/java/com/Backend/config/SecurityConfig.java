@@ -41,7 +41,7 @@ public class SecurityConfig {
                 // Allow pre-flight OPTIONS requests from React
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                 
-                // Require token for everything else
+                // Require token for everything else, INCLUDING /api/ai/generate
                 .anyRequest().authenticated() 
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -57,11 +57,11 @@ public class SecurityConfig {
         // Allow your React app to connect
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
         
-        // ✨ THE FIX: Allow ALL HTTP Methods (GET, POST, PUT, DELETE, PATCH, OPTIONS)
-        configuration.setAllowedMethods(Arrays.asList("*")); 
+        // ✨ THE FIX: Explicitly name the methods instead of "*"
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")); 
         
-        // ✨ THE FIX: Allow ALL Headers
-        configuration.setAllowedHeaders(Arrays.asList("*")); 
+        // ✨ THE FIX: Explicitly allow the Authorization header
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); 
         
         // Allow credentials (important for secure requests)
         configuration.setAllowCredentials(true);
