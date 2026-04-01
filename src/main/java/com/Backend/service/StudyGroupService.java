@@ -1,13 +1,15 @@
 package com.Backend.service;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.Backend.dto.GroupRequest;
 import com.Backend.model.StudyGroup;
 import com.Backend.model.User;
 import com.Backend.repository.StudyGroupRepository;
 import com.Backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.List;
 
 @Service
 public class StudyGroupService {
@@ -55,7 +57,7 @@ public class StudyGroupService {
         return groupRepository.save(group);
     }
 
-    // ✨ 4. NEW: Leave Group
+    // 4. Leave Group
     public void leaveGroup(Long groupId, Long userId) {
         StudyGroup group = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found!"));
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found!"));
@@ -65,12 +67,13 @@ public class StudyGroupService {
         }
         
         if (group.getAdmin().getId().equals(userId)) {
-            throw new RuntimeException("Admin cannot leave the group. You must delete it or transfer ownership (Feature coming soon).");
+            throw new RuntimeException("Admin cannot leave the group. You must delete it or transfer ownership first.");
         }
 
         group.getMembers().remove(user);
         groupRepository.save(group);
     }
+
     // 5. Delete Group (For Creators Only)
     public void deleteGroup(Long groupId, Long userId) {
         StudyGroup group = groupRepository.findById(groupId)
@@ -85,7 +88,31 @@ public class StudyGroupService {
         groupRepository.delete(group);
     }
 
-    // ✨ NEW: Dynamic Search Service
+    // ✨ NEW: 6. Transfer Group Ownership
+    public StudyGroup transferOwnership(Long groupId, Long currentAdminId, Long newAdminId) {
+        StudyGroup group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found!"));
+
+        // 1. Verify the person requesting the transfer is the actual admin
+        if (!group.getAdmin().getId().equals(currentAdminId)) {
+            throw new RuntimeException("Permission denied. Only the current creator can transfer ownership.");
+        }
+
+        // 2. Find the new admin
+        User newAdmin = userRepository.findById(newAdminId)
+                .orElseThrow(() -> new RuntimeException("Target user not found!"));
+
+        // 3. Ensure the new admin is actually in the group
+        if (!group.getMembers().contains(newAdmin)) {
+            throw new RuntimeException("The new leader must be an existing member of the group.");
+        }
+
+        // 4. Transfer power and save
+        group.setAdmin(newAdmin);
+        return groupRepository.save(group);
+    }
+
+    // 7. Dynamic Search Service
     public List<StudyGroup> searchGroups(String subject, String skillLevel, String studyGoal, String size, List<String> days) {
         
         // 1. Get basic matches from the database

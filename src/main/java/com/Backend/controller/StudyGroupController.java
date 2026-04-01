@@ -1,15 +1,16 @@
 package com.Backend.controller;
 
 import java.util.List;
-import java.util.stream.Collectors; // ✨ NEW
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin; // ✨ NEW
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping; // ✨ NEW
-import org.springframework.web.bind.annotation.PathVariable; // ✨ NEW
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping; // ✨ NEW IMPORT
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,10 +38,10 @@ public class StudyGroupController {
     private UserRepository userRepository;
 
     @Autowired
-    private UserProfileRepository userProfileRepository; // ✨ NEW
+    private UserProfileRepository userProfileRepository;
 
     @Autowired
-    private MatchingEngineService matchingService; // ✨ NEW
+    private MatchingEngineService matchingService;
 
     @PostMapping("/create")
     public ResponseEntity<?> createGroup(@RequestBody GroupRequest request) {
@@ -52,7 +53,6 @@ public class StudyGroupController {
         }
     }
 
-    // ✨ UPDATED: Now requires userId to calculate scores ✨
     @GetMapping("/all/{userId}")
     public ResponseEntity<?> getAllGroupsWithScores(@PathVariable Long userId) {
         try {
@@ -79,7 +79,6 @@ public class StudyGroupController {
         }
     }
 
-    // ✨ UPDATED: Now fetches the real skill level for every member
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> getUserGroups(@PathVariable Long userId) {
         try {
@@ -173,7 +172,22 @@ public class StudyGroupController {
         }
     }
 
-    // ✨ UPDATED: Now requires userId to calculate scores on filtered results ✨
+    // ✨ NEW: Endpoint for transferring ownership
+    @PutMapping("/{groupId}/transfer/{currentAdminId}/{newAdminId}")
+    public ResponseEntity<?> transferOwnership(
+            @PathVariable Long groupId, 
+            @PathVariable Long currentAdminId, 
+            @PathVariable Long newAdminId) {
+        try {
+            StudyGroup updatedGroup = groupService.transferOwnership(groupId, currentAdminId, newAdminId);
+            return ResponseEntity.ok(java.util.Map.of(
+                "message", "Success! " + updatedGroup.getAdmin().getName() + " is now the group leader."
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/search/{userId}")
     public ResponseEntity<?> searchGroupsWithScores(
             @PathVariable Long userId,
