@@ -35,8 +35,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 
-                // Route for authentication and resetting passwords
-                .requestMatchers("/api/auth/**", "/api/users/reset-password").permitAll() 
+                // ✨ PHASE 6 UPDATE: Added "/chat/**" so the WebSocket handshake doesn't get blocked
+                .requestMatchers("/api/auth/**", "/api/users/reset-password", "/chat/**").permitAll() 
                 
                 // Allow pre-flight OPTIONS requests from React
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
@@ -63,7 +63,7 @@ public class SecurityConfig {
         // ✨ THE FIX: Explicitly allow the Authorization header
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); 
         
-        // Allow credentials (important for secure requests)
+        // Allow credentials (important for secure requests and WebSockets)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

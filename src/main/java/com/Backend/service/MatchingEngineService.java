@@ -1,16 +1,17 @@
 package com.Backend.service;
 
-import com.Backend.dto.GroupMatchDTO;
-import com.Backend.model.StudyGroup;
-import com.Backend.model.UserProfile;
-import com.Backend.model.SubjectPreference;
-import com.Backend.repository.UserProfileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // ✨ NEW IMPORT
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.Backend.dto.GroupMatchDTO;
+import com.Backend.model.StudyGroup;
+import com.Backend.model.SubjectPreference;
+import com.Backend.model.UserProfile;
+import com.Backend.repository.UserProfileRepository;
 
 @Service
 public class MatchingEngineService {
@@ -18,7 +19,7 @@ public class MatchingEngineService {
     @Autowired
     private UserProfileRepository userProfileRepo;
 
-    // ✨ NEW: This annotation keeps the DB connection open to fetch the subjects! ✨
+    
     @Transactional
     public GroupMatchDTO calculateMatch(UserProfile userProfile, StudyGroup group) {
         int totalScore = 0;
@@ -29,7 +30,7 @@ public class MatchingEngineService {
         String overallText;
 
         try {
-            // --- 1. SUBJECT MATCH ---
+           
             boolean subjectMatches = false;
             String userSkillInSubject = "Basic"; 
             
@@ -42,7 +43,7 @@ public class MatchingEngineService {
                             if (levelStr.equals("1")) userSkillInSubject = "Basic";
                             else if (levelStr.equals("2")) userSkillInSubject = "Intermediate";
                             else if (levelStr.equals("3")) userSkillInSubject = "Advanced";
-                            else userSkillInSubject = levelStr; // ✨ FIX: Fallback to raw text
+                            else userSkillInSubject = levelStr; 
                         }
                         break;
                     }
@@ -56,7 +57,6 @@ public class MatchingEngineService {
                 subjectText = "Different Subject";
             }
 
-            // --- 2. SCHEDULE OVERLAP ---
             int schedulePoints = 0;
             List<String> userDays = userProfile.getSelectedDays();
             List<String> groupDays = group.getSessionDays();
@@ -77,7 +77,7 @@ public class MatchingEngineService {
             }
             totalScore += schedulePoints;
 
-            // --- 3. SKILL BALANCE ---
+           
             if (subjectMatches && group.getSkillLevel() != null) {
                 if (group.getSkillLevel().equalsIgnoreCase(userSkillInSubject)) {
                     totalScore += 15;
@@ -88,7 +88,7 @@ public class MatchingEngineService {
                 }
             }
 
-            // --- 4. LEARNING STYLE & SIZE PREFERENCE ---
+           
             if (userProfile.getLearningStyle() != null && group.getLearningStyle() != null) {
                 for (String style : group.getLearningStyle()) {
                     if (userProfile.getLearningStyle().contains(style)) {
@@ -98,7 +98,7 @@ public class MatchingEngineService {
                 }
             }
             
-            // Safe Group Size Parsing
+           
             if (userProfile.getGroupSize() != null && group.getMaxCapacity() != null) {
                 try {
                     String cleanSizeStr = userProfile.getGroupSize().replaceAll("[^0-9]", " ").trim().split("\\s+")[0];
@@ -121,23 +121,23 @@ public class MatchingEngineService {
             overallText = "Pending Calculation";
         }
 
-        // --- FETCH REAL SKILLS FOR ALL GROUP MEMBERS ---
+       
         List<GroupMatchDTO.MemberDTO> realMembersList = group.getMembers().stream().map(member -> {
             String role = member.getId().equals(group.getAdmin().getId()) ? "Creator" : "Member";
-            String memberSkill = "Unknown"; // Default
+            String memberSkill = "Unknown"; 
 
             try {
                 UserProfile profile = userProfileRepo.findByUserId(member.getId()).orElse(null);
                 
                 if (profile != null && profile.getSelectedSubjects() != null) {
                     for (SubjectPreference sp : profile.getSelectedSubjects()) {
-                        // Check if the member studies the group's subject
+                        
                         if (sp.getName() != null && sp.getName().trim().equalsIgnoreCase(group.getSubject().trim())) {
                             String levelStr = String.valueOf(sp.getLevel()).trim();
                             if (levelStr.equals("1")) memberSkill = "Basic";
                             else if (levelStr.equals("2")) memberSkill = "Intermediate";
                             else if (levelStr.equals("3")) memberSkill = "Advanced";
-                            else memberSkill = levelStr; // ✨ FIX: Fallback to raw text
+                            else memberSkill = levelStr; 
                             break;
                         }
                     }
